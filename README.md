@@ -1,10 +1,3 @@
-Perfect. Let’s **pivot README to subtly brand PaXdom Realty** while keeping it professional, trustworthy, and buyer-centric.
-We won’t make it “salesy,” but anyone reading will clearly know it’s **PaXdom’s product** and can visit your site if needed.
-
-Here’s a **Paxdom-branded V1 README**:
-
----
-
 ````md
 # 🏠 Understand This Property by PaXdom Realty  
 ### A Neutral AI Tool for Decoding Real Estate Listings
