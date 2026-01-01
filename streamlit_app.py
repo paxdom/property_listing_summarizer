@@ -29,16 +29,31 @@ st.divider()
 # -----------------------------
 # Input
 # -----------------------------
-listing_text = st.text_area(
-    label="Paste the property listing text",
-    placeholder=(
-        "Paste broker WhatsApp messages, website listings, or brochure text here.\n\n"
-        "Tip: The more raw the text, the better the analysis."
-    ),
-    height=220
+st.markdown("### Paste the property listing")
+
+st.caption(
+    "You can paste broker WhatsApp messages, website listings, or brochure text. "
+    "The tool will analyze it objectively — no promotion."
 )
 
-analyze_clicked = st.button("Analyze listing")
+listing_text = st.text_area(
+    label="",
+    placeholder=(
+        "Example:\n"
+        "• 2 BHK, 1150 sq ft, near Metro\n"
+        "• Pre-launch price, limited units\n"
+        "• Possession in 2027\n\n"
+        "Tip: Raw, unedited text works best."
+    ),
+    height=240
+)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+analyze_clicked = st.button(
+    "🔍  Analyze listing with clarity",
+    use_container_width=True
+)
 
 # -----------------------------
 # SYSTEM PROMPT (LOCKED – V1)
