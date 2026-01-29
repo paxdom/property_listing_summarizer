@@ -1,8 +1,10 @@
 import streamlit as st
-from openai import OpenAI
+import time
+import random
+from openai import OpenAI, RateLimitError
 
 # -----------------------------
-# App Config
+# PAGE CONFIG
 # -----------------------------
 st.set_page_config(
     page_title="Understand This Property",
@@ -11,30 +13,72 @@ st.set_page_config(
 )
 
 # -----------------------------
-# OpenAI Client
+# GLOBAL SAFE CSS (MATCH APP 2 & 3)
 # -----------------------------
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+st.markdown("""
+<style>
+html, body, .stApp {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+}
+
+h1, h2, h3 {
+    color: #111827 !important;
+}
+
+/* Inputs */
+textarea, input {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #D1D5DB !important;
+}
+
+/* Placeholder visibility */
+textarea::placeholder,
+input::placeholder {
+    color: #6B7280 !important;
+    opacity: 1 !important;
+}
+
+/* Button */
+button {
+    background-color: #111827 !important;
+    color: #ffffff !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+}
+
+/* Prevent scroll traps */
+.main, .block-container {
+    overflow: visible !important;
+    max-height: none !important;
+}
+
+/* Output spacing */
+.stMarkdown ul {
+    padding-left: 1.2em;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # -----------------------------
-# Header
+# HEADER
 # -----------------------------
 st.markdown(
     """
-    <div style="text-align:center; margin-bottom:16px;">
-        <h2 style="margin-bottom:6px;">🏠 Understand This Property</h2>
+    <div style="text-align:center; margin-bottom:18px;">
+        <h1>🏠 Understand This Property</h1>
         <p style="color:#555; font-size:15px; max-width:720px; margin:auto;">
             An objective breakdown of property listings — focused on clarity, gaps, and trade-offs.
-            This tool does not promote or recommend properties.
+            No promotion. No recommendations.
         </p>
     </div>
     """,
     unsafe_allow_html=True
 )
 
-st.divider()
-
 # -----------------------------
-# Input Section
+# INPUT SECTION
 # -----------------------------
 st.markdown("### 🧾 Paste the Property Listing")
 
@@ -44,7 +88,7 @@ st.caption(
 )
 
 listing_text = st.text_area(
-    label="Property listing text",
+    label="",
     placeholder=(
         "Example:\n"
         "• 2 BHK, 1150 sq ft, near Metro\n"
@@ -64,22 +108,21 @@ analyze_clicked = st.button(
 )
 
 # -----------------------------
-# SYSTEM PROMPT (LOCKED)
+# SYSTEM PROMPT (LOCKED – FINAL)
 # -----------------------------
 SYSTEM_PROMPT = """
 You are a neutral real estate analyst.
 
-Your task:
-Analyze and summarize the following property listing clearly and honestly for a homebuyer.
+Task:
+Analyze and summarize the property listing clearly and honestly for a homebuyer.
 
 Rules:
-- Do NOT promote or sell the property.
+- Do NOT promote, sell, or persuade.
 - Do NOT exaggerate positives.
-- Clearly call out trade-offs, limitations, risks, or uncertainties.
-- If information is missing, unclear, or vague, explicitly say "Not mentioned".
-- Do NOT assume facts that are not stated.
-- Use simple, plain language.
-- Avoid marketing or emotional tone.
+- Clearly highlight trade-offs, risks, limitations, and uncertainty.
+- If information is missing or vague, explicitly state: "Not mentioned".
+- Do NOT assume or infer facts.
+- Use simple, plain, non-marketing language.
 - Stay factual and balanced.
 
 Output format (strict):
@@ -92,21 +135,31 @@ Output format (strict):
 """
 
 # -----------------------------
-# Core Logic
+# OPENAI SAFE CLIENT
 # -----------------------------
-def summarize_listing(text: str) -> str:
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        temperature=0.2,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": text}
-        ]
-    )
-    return response.choices[0].message.content.strip()
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+def summarize_listing(text: str, retries=3) -> str:
+    for attempt in range(retries):
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                temperature=0.2,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": text}
+                ]
+            )
+            return response.choices[0].message.content.strip()
+
+        except RateLimitError:
+            if attempt < retries - 1:
+                time.sleep((2 ** attempt) + random.uniform(0.5, 1.5))
+            else:
+                raise
 
 # -----------------------------
-# Output Section
+# OUTPUT SECTION
 # -----------------------------
 if analyze_clicked:
     if not listing_text.strip():
@@ -116,18 +169,20 @@ if analyze_clicked:
             try:
                 result = summarize_listing(listing_text)
 
-                st.divider()
-                st.markdown("## 📊 PaXdom Summary")
+                st.markdown("---")
+                st.markdown("## 📊 Property Summary")
 
-                # ✅ SAFE OUTPUT CONTAINER (NO HTML)
-                with st.container():
-                    st.write(result)
+                # ✅ SAFE OUTPUT (NO HTML, MOBILE FRIENDLY)
+                st.markdown(result)
 
-            except Exception:
-                st.error("Unable to analyze the listing right now. Please try again.")
+            except RateLimitError:
+                st.error(
+                    "The tool is temporarily busy due to high usage. "
+                    "Please wait a moment and try again."
+                )
 
 # -----------------------------
-# Footer
+# FOOTER
 # -----------------------------
-st.divider()
-st.caption("PaXdom AI Tools • Neutral analysis • Built for informed decisions")
+st.markdown("---")
+st.caption("Neutral analysis • Built for clarity • No recommendations")
