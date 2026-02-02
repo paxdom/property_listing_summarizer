@@ -2,6 +2,7 @@ import streamlit as st
 import time
 import random
 from openai import OpenAI, RateLimitError
+import streamlit.components.v1 as components # Added for resizing
 
 # -----------------------------
 # PAGE CONFIG
@@ -186,3 +187,23 @@ if analyze_clicked:
 # -----------------------------
 st.markdown("---")
 st.caption("Neutral analysis • Built for clarity • No recommendations")
+
+# --- NEW: THE RESIZER COMPONENT ---
+# This tells the Wix iframe to change size whenever the result appears
+components.html(
+    """
+    <script>
+        const sendHeight = () => {
+            const height = document.body.scrollHeight;
+            window.parent.postMessage({
+                source: 'streamlit-resize',
+                height: height
+            }, '*');
+        }
+        const observer = new ResizeObserver(sendHeight);
+        observer.observe(document.body);
+        sendHeight(); // Initial call
+    </script>
+    """,
+    height=0,
+)
